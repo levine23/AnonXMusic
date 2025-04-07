@@ -121,6 +121,8 @@ class YouTubeAPI:
             link = link.split("&")[0]
         proc = await asyncio.create_subprocess_exec(
             "yt-dlp",
+            "--cookies",  # Tambahkan opsi cookie sebagai argumen terpisah
+            "cookies.txt",  # Pastikan path ini benar
             "-g",
             "-f",
             "best[height<=?720][width<=?1280]",
@@ -140,7 +142,7 @@ class YouTubeAPI:
         if "&" in link:
             link = link.split("&")[0]
         playlist = await shell_cmd(
-            f"yt-dlp -i --get-id --flat-playlist --playlist-end {limit} --skip-download {link}"
+            f"yt-dlp -i --get-id --flat-playlist --playlist-end {limit} --skip-download --cookies cookies.txt {link}"  # Tambahkan opsi cookie di sini
         )
         try:
             result = playlist.split("\n")
@@ -177,7 +179,7 @@ class YouTubeAPI:
             link = self.base + link
         if "&" in link:
             link = link.split("&")[0]
-        ytdl_opts = {"quiet": True}
+        ytdl_opts = {"quiet": True, "cookiefile": "cookies.txt"}  # Tambahkan opsi cookie di sini
         ydl = yt_dlp.YoutubeDL(ytdl_opts)
         with ydl:
             formats_available = []
@@ -249,6 +251,7 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
+                "cookiefile": "cookies.txt",  # Tambahkan opsi cookie di sini
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
             info = x.extract_info(link, False)
@@ -266,6 +269,7 @@ class YouTubeAPI:
                 "nocheckcertificate": True,
                 "quiet": True,
                 "no_warnings": True,
+                "cookiefile": "cookies.txt",  # Tambahkan opsi cookie di sini
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
             info = x.extract_info(link, False)
@@ -287,6 +291,7 @@ class YouTubeAPI:
                 "no_warnings": True,
                 "prefer_ffmpeg": True,
                 "merge_output_format": "mp4",
+                "cookiefile": "cookies.txt",  # Tambahkan opsi cookie di sini
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
@@ -308,6 +313,7 @@ class YouTubeAPI:
                         "preferredquality": "192",
                     }
                 ],
+                "cookiefile": "cookies.txt",  # Tambahkan opsi cookie di sini
             }
             x = yt_dlp.YoutubeDL(ydl_optssx)
             x.download([link])
@@ -323,10 +329,25 @@ class YouTubeAPI:
         elif video:
             if await is_on_off(1):
                 direct = True
-                downloaded_file = await loop.run_in_executor(None, video_dl)
+                ydl_opts = {
+                    "format": "(bestvideo[height<=?720][width<=?1280][ext=mp4])+(bestaudio[ext=m4a])",
+                    "outtmpl": "downloads/%(id)s.%(ext)s",
+                    "geo_bypass": True,
+                    "nocheckcertificate": True,
+                    "quiet": True,
+                    "no_warnings": True,
+                    "cookiefile": "cookies.txt",  # Tambahkan opsi cookie di sini
+                }
+                x = yt_dlp.YoutubeDL(ydl_opts)
+                info = x.extract_info(link, False)
+                downloaded_file = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+                if not os.path.exists(downloaded_file):
+                    x.download([link])
             else:
                 proc = await asyncio.create_subprocess_exec(
                     "yt-dlp",
+                    "--cookies",  # Tambahkan opsi cookie sebagai argumen terpisah
+                    "cookies.txt",  # Pastikan path ini benar
                     "-g",
                     "-f",
                     "best[height<=?720][width<=?1280]",
@@ -342,5 +363,18 @@ class YouTubeAPI:
                     return
         else:
             direct = True
-            downloaded_file = await loop.run_in_executor(None, audio_dl)
+            ydl_opts = {
+                "format": "bestaudio/best",
+                "outtmpl": "downloads/%(id)s.%(ext)s",
+                "geo_bypass": True,
+                "nocheckcertificate": True,
+                "quiet": True,
+                "no_warnings": True,
+                "cookiefile": "cookies.txt",  # Tambahkan opsi cookie di sini
+            }
+            x = yt_dlp.YoutubeDL(ydl_opts)
+            info = x.extract_info(link, False)
+            downloaded_file = os.path.join("downloads", f"{info['id']}.{info['ext']}")
+            if not os.path.exists(downloaded_file):
+                x.download([link])
         return downloaded_file, direct
